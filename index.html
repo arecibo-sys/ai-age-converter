@@ -148,7 +148,7 @@
 
   <div class="foot">
     <b>How it works:</b> AI gets smarter fast. We count how many times it has "doubled" in ability since a thing was released.<br>
-    <b>1 AI year</b> = one doubling of AI ability. On the hardest real-world benchmark (GDPval), GPT-4o → GPT-5 was a 3.1x jump in 15 months — so AI capability roughly doubles every 8 months, and 1 human year ≈ 1.4 AI years.
+    <b>1 AI year</b> = one doubling of AI ability. The pace has accelerated: in the last 6 months OpenAI shipped GPT-5.3 → 5.4 → 5.5 → 5.6 and Claude Opus 5 jumped +12-30% on real work. So AI capability roughly doubles every 6 months, and 1 human year ≈ 2 AI years.
   </div>
 </div>
 
@@ -284,12 +284,13 @@
   // default date: today
   dateInput.value = new Date().toISOString().slice(0,10);
 
-  // pace: frontier AI capability roughly doubles every ~8.4 months.
-  // Rigorous basis: on the hardest capability benchmark (GDPval, real-world agentic
-  // tasks), GPT-4o->GPT-5 was a 3.1x jump in 15 months and GPT-4o->Claude Opus 4.1 a
-  // 3.8x jump — an effective doubling time of ~8.4 months. Easy benchmarks saturate,
-  // so the hard-benchmark rate is the honest measure of real capability growth.
-  var T = 0.7;
+  // pace: frontier AI capability roughly doubles every ~6 months.
+  // Rigorous basis: the pace has ACCELERATED. In the last 6 months (Feb-Aug 2026)
+  // OpenAI shipped GPT-5.3->5.4->5.5->5.6 (~every 6 weeks) and Claude Opus 5 was a
+  // "huge jump" (+12-30% on enterprise agentic tasks). The historical 2022-2024
+  // average (~8-9 months) is dragged up by the slower early era; the current rate
+  // is the commonly-cited ~6-month doubling time.
+  var T = 0.5;
 
   // milestone chips
   var presets = $("presets");
