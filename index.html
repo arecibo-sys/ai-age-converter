@@ -29,6 +29,14 @@
     background-size:44px 44px;
     mask-image:radial-gradient(circle at 50% 30%, #000 0%, transparent 75%);
   }
+  .mute{
+    position:fixed; top:14px; right:14px; z-index:50; width:42px; height:42px;
+    border-radius:50%; cursor:pointer; font-size:18px; line-height:1;
+    border:1px solid rgba(0,240,255,.35); background:rgba(10,16,26,.7); color:var(--cyan);
+    box-shadow:0 0 14px rgba(0,240,255,.2); transition:all .2s; backdrop-filter:blur(4px);
+  }
+  .mute:hover{box-shadow:0 0 20px rgba(0,240,255,.45);}
+  .mute.off{color:var(--dim); border-color:rgba(127,155,176,.4); box-shadow:none; opacity:.7;}
   .wrap{max-width:560px; margin:0 auto;}
   header{text-align:center; margin-bottom:26px;}
   .logo{
@@ -110,6 +118,7 @@
 </style>
 </head>
 <body>
+<button id="muteBtn" class="mute" title="Toggle sound" aria-label="Toggle sound">🔊</button>
 <div class="wrap">
   <header>
     <div class="logo">AI Age Converter</div>
@@ -154,6 +163,114 @@
 <script>
 (function(){
   "use strict";
+
+  /* ---------- Retro-futuristic sound system (Web Audio) ---------- */
+  var SOUND = {
+    ctx: null, master: null, humGain: null, humStarted: false, muted: false
+  };
+  function ensureCtx(){
+    if(!SOUND.ctx){
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if(!AC) return false;
+      SOUND.ctx = new AC();
+      SOUND.master = SOUND.ctx.createGain();
+      SOUND.master.gain.value = SOUND.muted ? 0 : 1;
+      SOUND.master.connect(SOUND.ctx.destination);
+      startHum();
+    }
+    if(SOUND.ctx.state === "suspended") SOUND.ctx.resume();
+    return true;
+  }
+  function startHum(){
+    if(SOUND.humStarted) return;
+    SOUND.humStarted = true;
+    var ctx = SOUND.ctx;
+    // low drone ~55Hz with a slow LFO on gain + a faint filtered noise bed
+    var osc = ctx.createOscillator();
+    osc.type = "sine"; osc.frequency.value = 55;
+    var osc2 = ctx.createOscillator();
+    osc2.type = "sine"; osc2.frequency.value = 55.7; // slight detune for warmth
+    var humGain = ctx.createGain();
+    humGain.gain.value = 0.0;
+    var lfo = ctx.createOscillator();
+    lfo.type = "sine"; lfo.frequency.value = 0.12;
+    var lfoGain = ctx.createGain();
+    lfoGain.gain.value = 0.012;
+    lfo.connect(lfoGain); lfoGain.connect(humGain.gain);
+    osc.connect(humGain); osc2.connect(humGain);
+    // faint filtered noise bed
+    var len = ctx.sampleRate * 2;
+    var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    var d = buf.getChannelData(0);
+    for(var i=0;i<len;i++) d[i] = (Math.random()*2-1)*0.5;
+    var noise = ctx.createBufferSource(); noise.buffer = buf; noise.loop = true;
+    var nf = ctx.createBiquadFilter(); nf.type = "lowpass"; nf.frequency.value = 90;
+    var ng = ctx.createGain(); ng.gain.value = 0.02;
+    noise.connect(nf); nf.connect(ng); ng.connect(humGain);
+    humGain.connect(SOUND.master);
+    // gentle fade-in
+    var t = ctx.currentTime;
+    humGain.gain.setValueAtTime(0.0, t);
+    humGain.gain.linearRampToValueAtTime(0.05, t + 3);
+    osc.start(); osc2.start(); lfo.start(); noise.start();
+    SOUND.humGain = humGain;
+  }
+  function setMuted(m){
+    SOUND.muted = m;
+    if(SOUND.master) SOUND.master.gain.setTargetAtTime(m?0:1, SOUND.ctx.currentTime, 0.05);
+    var btn = document.getElementById("muteBtn");
+    if(btn){ btn.textContent = m ? "\u{1F507}" : "\u{1F50A}"; btn.classList.toggle("off", m); }
+    try{ localStorage.setItem("aiAgeMuted", m ? "1" : "0"); }catch(e){}
+  }
+  function click(){ // soft low keystroke click
+    if(!ensureCtx() || SOUND.muted) return;
+    var ctx = SOUND.ctx, t = ctx.currentTime;
+    var src = ctx.createBufferSource();
+    var len = Math.floor(ctx.sampleRate * 0.04);
+    var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    var d = buf.getChannelData(0);
+    for(var i=0;i<len;i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 2);
+    src.buffer = buf;
+    var f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 700;
+    var g = ctx.createGain();
+    g.gain.setValueAtTime(0.0, t);
+    g.gain.linearRampToValueAtTime(0.12, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
+    src.connect(f); f.connect(g); g.connect(SOUND.master);
+    src.start(t); src.stop(t + 0.05);
+  }
+  function chime(){ // soft low two-note confirmation
+    if(!ensureCtx() || SOUND.muted) return;
+    var ctx = SOUND.ctx, t = ctx.currentTime;
+    var notes = [196, 147]; // G3 -> D3, gentle descending
+    for(var n=0;n<notes.length;n++){
+      var o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = notes[n];
+      var g = ctx.createGain();
+      var st = t + n*0.22;
+      g.gain.setValueAtTime(0.0, st);
+      g.gain.linearRampToValueAtTime(0.10, st + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, st + 0.35);
+      o.connect(g); g.connect(SOUND.master);
+      o.start(st); o.stop(st + 0.4);
+    }
+  }
+  // restore mute preference
+  try{ SOUND.muted = localStorage.getItem("aiAgeMuted") === "1"; }catch(e){}
+  document.addEventListener("click", function once(){
+    ensureCtx();
+    document.removeEventListener("click", once);
+  }, { once:true });
+  var muteBtn = document.getElementById("muteBtn");
+  if(muteBtn){
+    muteBtn.textContent = SOUND.muted ? "\u{1F507}" : "\u{1F50A}";
+    muteBtn.classList.toggle("off", SOUND.muted);
+    muteBtn.addEventListener("click", function(e){
+      e.stopPropagation();
+      ensureCtx();
+      setMuted(!SOUND.muted);
+    });
+  }
+
   var T = 0.5;
   var MILESTONES = [
     {name:"ChatGPT",  date:"2022-11-30"},
@@ -197,6 +314,7 @@
     T = parseFloat(p.getAttribute("data-t"));
     Array.prototype.forEach.call(paceRow.children, function(c){ c.classList.remove("active"); });
     p.classList.add("active");
+    click();
     convert();
   });
 
@@ -208,6 +326,7 @@
     chip.textContent = m.name;
     chip.addEventListener("click", function(){
       dateInput.value = m.date;
+      click();
       convert();
     });
     presets.appendChild(chip);
@@ -256,8 +375,8 @@
     card.classList.add("fade");
   }
 
-  convertBtn.addEventListener("click", convert);
-  dateInput.addEventListener("change", convert);
+  convertBtn.addEventListener("click", function(){ convert(); chime(); });
+  dateInput.addEventListener("change", function(){ convert(); chime(); });
   convert();
 })();
 </script>
