@@ -94,7 +94,7 @@
   .chip:hover{background:rgba(155,92,255,.2); box-shadow:0 0 14px rgba(155,92,255,.4); color:#fff;}
   .result{text-align:center; padding:8px 0 2px;}
   .big{font-size:52px; font-weight:900; line-height:1.1;}
-  .big .unit{font-size:20px; font-weight:600; color:var(--dim);}
+  .big-label{font-size:16px; font-weight:600; color:var(--dim); margin-top:2px; letter-spacing:1px;}
   .ai-years{color:var(--cyan); text-shadow:0 0 22px rgba(0,240,255,.7);}
   .human-years{color:var(--dim); font-size:18px; margin-top:6px;}
   .quip{
@@ -127,15 +127,6 @@
   </header>
 
   <div class="card">
-    <h2>Pace of AI progress</h2>
-    <div class="pace-row" id="paceRow">
-      <div class="pace" data-t="1.0"><b>Conservative</b><small>AI doubles every 12 months</small></div>
-      <div class="pace active" data-t="0.5"><b>Standard</b><small>AI doubles every 6 months</small></div>
-      <div class="pace" data-t="0.25"><b>Aggressive</b><small>AI doubles every 3 months</small></div>
-    </div>
-  </div>
-
-  <div class="card">
     <h2>Pick a date</h2>
     <div class="date-row">
       <input type="date" id="dateInput">
@@ -148,6 +139,7 @@
 
   <div class="card result" id="resultCard">
     <div class="big ai-years" id="aiYears">—</div>
+    <div class="big-label">AI years old</div>
     <div class="human-years" id="humanYears">Pick a date to begin</div>
     <div class="bar"><i id="barFill"></i></div>
     <div class="quip" id="quip"></div>
@@ -156,7 +148,7 @@
 
   <div class="foot">
     <b>How it works:</b> AI gets smarter fast. We count how many times it has "doubled" in ability since a thing was released.<br>
-    <b>1 AI year</b> = one doubling of AI ability. The faster you set the pace, the older everything seems.
+    <b>1 AI year</b> = one doubling of AI ability. AI doubles roughly every 6 months, so 1 human year ≈ 2 AI years.
   </div>
 </div>
 
@@ -239,21 +231,6 @@
     src.connect(f); f.connect(g); g.connect(SOUND.master);
     src.start(t); src.stop(t + 0.05);
   }
-  function chime(){ // soft low two-note confirmation
-    if(!ensureCtx() || SOUND.muted) return;
-    var ctx = SOUND.ctx, t = ctx.currentTime;
-    var notes = [196, 147]; // G3 -> D3, gentle descending
-    for(var n=0;n<notes.length;n++){
-      var o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = notes[n];
-      var g = ctx.createGain();
-      var st = t + n*0.22;
-      g.gain.setValueAtTime(0.0, st);
-      g.gain.linearRampToValueAtTime(0.10, st + 0.03);
-      g.gain.exponentialRampToValueAtTime(0.0001, st + 0.35);
-      o.connect(g); g.connect(SOUND.master);
-      o.start(st); o.stop(st + 0.4);
-    }
-  }
   // restore mute preference
   try{ SOUND.muted = localStorage.getItem("aiAgeMuted") === "1"; }catch(e){}
   document.addEventListener("click", function once(){
@@ -271,7 +248,6 @@
     });
   }
 
-  var T = 0.5;
   var MILESTONES = [
     {name:"ChatGPT",  date:"2022-11-30"},
     {name:"GPT-4",    date:"2023-03-14"},
@@ -306,17 +282,8 @@
   // default date: today
   dateInput.value = new Date().toISOString().slice(0,10);
 
-  // pace selector
-  var paceRow = $("paceRow");
-  paceRow.addEventListener("click", function(e){
-    var p = e.target.closest(".pace");
-    if(!p) return;
-    T = parseFloat(p.getAttribute("data-t"));
-    Array.prototype.forEach.call(paceRow.children, function(c){ c.classList.remove("active"); });
-    p.classList.add("active");
-    click();
-    convert();
-  });
+  // pace: AI capability doubles roughly every 6 months (the commonly-cited figure)
+  var T = 0.5;
 
   // milestone chips
   var presets = $("presets");
@@ -358,8 +325,8 @@
     if(humanYears < 0) humanYears = 0;
     var ai = humanYears / T;
 
-    aiYearsEl.textContent = ai.toFixed(1) + " <span class='unit'>AI years</span>";
-    humanEl.textContent = humanYears.toFixed(1) + " human years ago";
+    aiYearsEl.textContent = ai.toFixed(1);
+    humanEl.textContent = humanYears.toFixed(1) + " human years ago — that's " + ai.toFixed(1) + " AI years old";
     quipEl.textContent = pickQuip(ai);
     var st = stageFor(ai);
     stageEl.textContent = "If it were a person: " + st.name;
@@ -375,8 +342,8 @@
     card.classList.add("fade");
   }
 
-  convertBtn.addEventListener("click", function(){ convert(); chime(); });
-  dateInput.addEventListener("change", function(){ convert(); chime(); });
+  convertBtn.addEventListener("click", function(){ convert(); });
+  dateInput.addEventListener("change", function(){ convert(); });
   convert();
 })();
 </script>
