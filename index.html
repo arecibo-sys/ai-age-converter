@@ -148,7 +148,7 @@
 
   <div class="foot">
     <b>How it works:</b> AI gets smarter fast. We count how many times it has "doubled" in ability since a thing was released.<br>
-    <b>1 AI year</b> = one doubling of AI ability. Based on real model releases (ChatGPT → GPT-4 → GPT-4o → o1 → GPT-5 → GPT-5.6), AI capability roughly doubles every year, so 1 human year ≈ 1 AI year.
+    <b>1 AI year</b> = one doubling of AI ability. On the hardest real-world benchmark (GDPval), GPT-4o → GPT-5 was a 3.1x jump in 15 months — so AI capability roughly doubles every 8 months, and 1 human year ≈ 1.4 AI years.
   </div>
 </div>
 
@@ -284,11 +284,12 @@
   // default date: today
   dateInput.value = new Date().toISOString().slice(0,10);
 
-  // pace: frontier AI capability roughly doubles every ~12 months (1 year).
-  // Rigorous basis: 5 major generations 2022-2026 (ChatGPT->GPT-4->GPT-4o->o1->GPT-5->GPT-5.6)
-  // span ~3.7 years, but not every generation is a full 2x jump (GPT-4o, GPT-5.6 were
-  // incremental). Weighting per-generation gains gives an effective doubling time of ~1.06 yr.
-  var T = 1.0;
+  // pace: frontier AI capability roughly doubles every ~8.4 months.
+  // Rigorous basis: on the hardest capability benchmark (GDPval, real-world agentic
+  // tasks), GPT-4o->GPT-5 was a 3.1x jump in 15 months and GPT-4o->Claude Opus 4.1 a
+  // 3.8x jump — an effective doubling time of ~8.4 months. Easy benchmarks saturate,
+  // so the hard-benchmark rate is the honest measure of real capability growth.
+  var T = 0.7;
 
   // milestone chips
   var presets = $("presets");
