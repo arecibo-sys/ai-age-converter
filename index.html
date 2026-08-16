@@ -249,6 +249,8 @@
   }
 
   var MILESTONES = [
+    {name:"AI released 3 months ago", monthsAgo:3},
+    {name:"AI released 6 months ago", monthsAgo:6},
     {name:"ChatGPT",  date:"2022-11-30"},
     {name:"GPT-4",    date:"2023-03-14"},
     {name:"GPT-3",    date:"2020-06-11"},
@@ -292,7 +294,13 @@
     chip.className = "chip";
     chip.textContent = m.name;
     chip.addEventListener("click", function(){
-      dateInput.value = m.date;
+      if(m.monthsAgo){
+        var d = new Date();
+        d.setMonth(d.getMonth() - m.monthsAgo);
+        dateInput.value = d.toISOString().slice(0,10);
+      } else {
+        dateInput.value = m.date;
+      }
       click();
       convert();
     });
